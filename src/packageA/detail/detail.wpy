@@ -1,0 +1,80 @@
+<style lang="scss">
+  /* @import "../wxParse/wxParse.wxss"; */
+  @function cSize($phonePx){
+    @return $phonePx/1.5*1rpx
+  }
+  .detail-banner{
+    width:100%;
+    height:cSize(720);
+    image{
+      width:100%;
+      height:100%;
+    }
+  }
+  .detail-title{
+    text-align:center;
+    margin: cSize(90) 0 cSize(43);
+    color:#000;
+    font-size:cSize(54);
+    font-weight:bold;
+  }
+  .wxParse{
+    width:90%;
+    margin:0 auto cSize(105);
+    text-align: justify;
+    word-wrap:break-word;
+  }
+</style>
+<template>
+<import src="../wxParse/wxParse.wxml"/>
+  <view class="detail-banner">
+    <image src="{{item.cover}}"/>
+  </view>
+  <view class="detail-title">
+    {{item.title}}
+  </view>
+  <view class="wxParse">
+    <template is="wxParse" data="{{wxParseData:article.nodes}}"/>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import Util from '../../util'
+  import WxParse from '../wxParse/wxParse.js'
+  export default class Detail extends wepy.page {
+    config = {
+      navigationBarTitleText: '详情页'
+    }
+    data = {
+      item: {}
+    }
+    methods = {
+      // onPullDownRefresh () {
+      //   console.log('0')
+      // }
+    }
+    onLoad (option) {
+      let id = option.id
+      let self = this
+      Util.requestAjax({
+        url: '/v1/common/banner/' + id,
+        success (data) {
+          if (data.data.code == 300000) {
+            self.coverImg = data.data.data.cover
+            self.item = data.data.data
+            let article = self.item.content
+            WxParse.wxParse('article', 'html', article, self, 5)
+            self.$apply()
+          } else {
+            wx.showToast({
+              title: '详情页' + data.data.msg,
+              icon: 'none',
+              duration: 2000
+            })
+          }
+        }
+      })
+    }
+  }
+</script>

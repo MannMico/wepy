@@ -1,0 +1,311 @@
+<script>
+  import wepy from 'wepy'
+  export default {
+    requestAjax: ({url = '', method = 'get', data = {}, success = () => {}}) => {
+      let baseUrl = 'https://draw.lkker.com'
+      // let baseUrl = 'http://draw.dev.lkker.cn'
+      wepy.request({
+        url: `${baseUrl}${url}`,
+        method,
+        data,
+        header: {
+          'X-Nonce': '', // 默认值
+          'X-Time': '', // 默认值
+          'X-Sign': '' // 默认值
+        },
+        success (data) {
+          if (data.code == 300004) {
+            console.log('未登录')
+          } else {
+            success && success(data)
+          }
+        }
+      })
+    },
+    isLike (e, that) {
+      var self = that
+      var _this = this
+      var ilike = e.currentTarget.dataset.like
+      var paintId = e.currentTarget.dataset.id
+      var index = e.currentTarget.dataset.index
+      self.$parent.globalData.toHref = _this.getCurrentPageUrlWithArgs()
+      if (self.$parent.globalData.loginStatus == 1) {
+        if (self.lists[index].isMine != 1) {
+          if (ilike != 1) {
+            _this.requestAjax({
+              url: '/v1/paint/like/' + paintId,
+              method: 'post',
+              data: {
+                paintId: paintId
+              },
+              success (data) {
+                if (data.data.code == 300000) {
+                  self.lists[index].iLike = 1
+                  self.lists[index].like_num++
+                  self.$apply()
+                  console.log(self.lists)
+                } else {
+                  wx.showToast({
+                    title: data.data.msg,
+                    icon: 'none',
+                    duration: 2000
+                  })
+                }
+              }
+            })
+          } else {
+            wx.showModal({
+              title: '',
+              content: '确定不再喜欢该作品了吗？',
+              confirmColor: '#00d3b2',
+              confirmText: '确定',
+              cancelText: '取消',
+              success: function(res) {
+                if (res.confirm) {
+                  _this.requestAjax({
+                    url: '/v1/paint/cancel-like/' + paintId,
+                    method: 'post',
+                    data: {
+                      paintId: paintId
+                    },
+                    success (data) {
+                      if (data.data.code == 300000) {
+                        self.lists[index].iLike = 0
+                        self.lists[index].like_num--
+                        self.$apply()
+                      } else {
+                        wx.showToast({
+                          title: data.data.msg,
+                          icon: 'none',
+                          duration: 2000
+                        })
+                      }
+                    }
+                  })
+                }
+              }
+            })
+          }
+        } else {
+          wx.showToast({
+            title: '该作品是您自己的作品，不能点赞',
+            icon: 'none',
+            duration: 2000
+          })
+        }
+      } else {
+        wx.navigateTo({url: '/login/login'})
+      }
+    },
+    getCurrentPageUrlWithArgs () {
+      var pages = getCurrentPages()    // 获取加载的页面
+      var currentPage = pages[pages.length - 1]    // 获取当前页面的对象
+      var url = currentPage.route    // 当前页面url
+      var options = currentPage.options    // 如果要获取url中所带的参数可以查看options
+  
+      // 拼接url的参数
+      var urlWithArgs = '/' + url + '?'
+      for (var key in options) {
+        var value = options[key]
+        urlWithArgs += key + '=' + value + '&'
+      }
+      urlWithArgs = urlWithArgs.substring(0, urlWithArgs.length - 1)
+  
+      return urlWithArgs
+    },
+    loginStatus (sHref, that) {
+      var self = that
+      if (self.$parent.globalData.loginStatus == 1) {
+        wx.navigateTo({url: sHref})
+      } else {
+        wx.navigateTo({url: '/login/login'})
+      }
+      // self.requestAjax({
+      //   url: '/v1/common/login/status',
+      //   method: 'get',
+      //   data: {},
+      //   success (data) {
+      //     if (data.data.code != 300000) {
+      //       wx.navigateTo({url: '/login/login'})
+      //     } else {
+      //       wx.navigateTo({url: sHref})
+      //     }
+      //   }
+      // })
+    },
+    isLogin: ({e, sth = () => {}}) => {
+      var self = e
+      self.requestAjax({
+        url: '/v1/common/login/status',
+        method: 'get',
+        data: {},
+        success (data) {
+          if (data.data.code != 300000) {
+            wx.login({
+              success: res => {
+              // 发送 res.code 到后台换取 openId, sessionKey, unionId
+                wx.setStorageSync('loginCode', res.code)
+                console.log(res)
+                var loginCode = wx.getStorageSync('loginCode')
+                console.log(loginCode)
+                self.requestAjax({
+                  url: '/v1/common/login',
+                  method: 'post',
+                  data: {
+                    code: wx.getStorageSync('loginCode')
+                  },
+                  success (data) {
+                    if (data.data.code == 300000) {
+                      wx.setStorageSync('api_token', data.data.data.api_token)
+                      console.log(wx.getStorageSync('api_token'))
+                      console.log(wx.getStorageSync('loginCode'))
+                      // 获取用户信息
+                      wx.getSetting({
+                        success: res => {
+                          if (res.authSetting['scope.userInfo']) {
+                          // 已经授权，可以直接调用 getUserInfo 获取头像昵称，不会弹框
+                            wx.getUserInfo({
+                              success: res => {
+                                wx.setStorageSync('sex', res.userInfo.gender)
+                                // self.$parent.globalData.sex = res.userInfo.gender
+                                self.requestAjax({
+                                  url: '/v1/user/info',
+                                  method: 'post',
+                                  data: {
+                                    api_token: wx.getStorageSync('api_token'),
+                                    encryptedData: res.encryptedData,
+                                    iv: res.iv
+                                  },
+                                  success (data) {
+                                    if (data.data.code == 300000) {
+                                      sth && sth(data)
+                                    } else {
+                                      wx.showToast({
+                                        title: data.data.msg,
+                                        icon: 'none',
+                                        duration: 2000
+                                      })
+                                    }
+                                  }
+                                })
+                              }
+                            })
+                          } else {
+                            wx.showToast({
+                              title: '未授权',
+                              icon: 'none',
+                              duration: 2000
+                            })
+                          }
+                        },
+                        fail () {
+                          wx.showToast({
+                            title: '授权失败',
+                            icon: 'none',
+                            duration: 2000
+                          })
+                        }
+                      })
+                    } else {
+                      wx.showToast({
+                        title: data.data.msg,
+                        icon: 'none',
+                        duration: 2000
+                      })
+                    }
+                  }
+                })
+              },
+              fail (res) {
+                wx.showToast({
+                  title: res,
+                  icon: 'none',
+                  duration: 2000
+                })
+              }
+            })
+          } else {
+            sth && sth(data)
+          }
+        }
+      })
+    },
+    uploadFn: function (e, filePath, fileName) {
+      let region = 'sh'
+      let appId = '10041312'
+      let bucketName = 'lkker'
+      let dirName = 'userPaints'
+      let cosUrl = 'https://' + region + '.file.myqcloud.com/files/v2/' + appId + '/' + bucketName + '/' + dirName
+      var self = this
+      this.requestAjax({
+        url: '/v1/common/cos-signature',
+        method: 'get',
+        data: {
+          fileName: fileName
+        },
+        success: function(cosRes) {
+          // 头部带上签名，上传文件至COS
+          wx.uploadFile({
+            url: cosUrl + '/' + fileName,
+            filePath: filePath,
+            header: { 'Authorization': cosRes.data.data },
+            name: 'filecontent',
+            formData: {op: 'upload'},
+            success: function(uploadRes) {
+              console.log(uploadRes.data.data)
+              let newData = JSON.parse(uploadRes.data)
+              // debugger
+              if (newData.code == 0) {
+                if (e.saveImage == 1) {
+                  self.requestAjax({
+                    url: '/v1/paint/save',
+                    method: 'post',
+                    data: {
+                      themeId: e.themeId,
+                      draftId: e.drawId,
+                      draft: newData.data.access_url
+                    },
+                    success (data) {
+                      if (data.data.code == 300000) {
+                        console.log(data)
+                        wx.navigateTo({url: '/picsave/picsave?paintId=' + data.data.data.id + '&paint=' + filePath})
+                      } else {
+                        wx.showToast({
+                          title: data.data.msg,
+                          icon: 'none',
+                          duration: 2000
+                        })
+                      }
+                    }
+                  })
+                } else {
+                  self.requestAjax({
+                    url: '/v1/draft/save',
+                    method: 'post',
+                    data: {
+                      themeId: e.themeId,
+                      draft: newData.data.access_url,
+                      draftId: e.drawId
+                    },
+                    success (data) {
+                      if (data.data.code == 300000) {
+                        console.log(data)
+                        wx.navigateTo({url: '/drafts/drafts'})
+                      } else {
+                        wx.showToast({
+                          title: data.data.msg,
+                          icon: 'none',
+                          duration: 2000
+                        })
+                      }
+                    }
+                  })
+                }
+              }
+            }
+          })
+        }
+      })
+    }
+  }
+</script>

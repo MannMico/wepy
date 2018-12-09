@@ -1,0 +1,167 @@
+/**
+ * 请求接口前设置请求头信息
+ * @param {String} X-Nonce 随机字符串（16位）
+ * @param {Number} X-Time unixtime时间戳（10位）
+ * @param {String} Authorization 认证用 Bear，基本用Basic
+ * @param {String} X-Sign 格式lower(sha1("lkker:{{X-Nonce}}:{{X-Time}}:{{data}}”))（40位）
+ */
+
+// var esc = function (param) {
+//     return encodeURIComponent(param)
+//         .replace(/[!'()*]/g, escape)
+//         .replace(/%20/g, '+');
+// };
+<script >
+import sha1 from 'js-sha1'
+import URL from 'url-parse'
+export default {
+  isNumeric: function (n) {
+    return !isNaN(parseFloat(n)) && isFinite(n)
+  },
+
+  httpBuildQuery: function (queryData, numericPrefix, argSeparator, tempKey) {
+    numericPrefix = numericPrefix || null
+    argSeparator = argSeparator || '&'
+    tempKey = tempKey || null
+    var query = Object.keys(queryData).map(function (k) {
+      var res
+      var key = k
+      if (tempKey) {
+        key = tempKey + '[' + key + ']'
+      }
+      if (typeof queryData[k] === 'object') {
+        res = this.httpBuildQuery(queryData[k], null, argSeparator, key)
+      } else {
+        if (numericPrefix) {
+          key = this.isNumeric(key) ? numericPrefix + Number(key) : key
+        }
+        res = this.fixedEncodeURIComponent(key) + '=' + this.fixedEncodeURIComponent(queryData[k])
+      }
+      return res
+    })
+    return query.join(argSeparator).replace(/[!'()*]/g, '')
+  },
+
+  buildQuery: function (queryArr) {
+    var self = this
+    var str = ''
+    queryArr.forEach(function (value, index) {
+      if (Array.isArray(value.value) || typeof value.value === 'object') {
+        if (Object.keys(value.value).length !== 0) {
+          str += self.httpBuildQuery(value.value, null, null, value.key) + '&'
+        }
+      } else {
+        str += value.key + '=' + self.fixedEncodeURIComponent(value.value) + '&'
+      }
+    })
+    return str.slice(0, -1)
+  },
+
+  fixedEncodeURIComponent: function (str) {
+    return encodeURIComponent(str).replace(/[!'()*]/g, function (c) {
+      return '%' + c.charCodeAt(0).toString(16).toLocaleUpperCase()
+    })
+  },
+
+  sortByKey: function (lists) {
+    lists.sort(function (a, b) {
+      if (a.key > b.key) {
+        return 1
+      } else if (a.key < b.key) {
+        return -1
+      }
+      return 0
+    })
+    return lists
+  },
+
+  // splitQuery: function (query) {
+  //   if (query === '') {
+  //     return []
+  //   }
+  //   query = query.substring(1)
+  //   var lists = []
+  //   var kv = query.split('&')
+  //   kv.forEach(function (value, index) {
+  //     [_key, _value] = value.split('=')
+  //     lists[index] = {key: _key, value: _value}
+  //   })
+  //   return lists
+  // },
+
+  map2list: function (kv) {
+    var lists = []
+    Object.keys(kv).forEach(function (_value, _index) {
+      lists[_index] = { key: _value, value: kv[_value] }
+    })
+    return lists
+  },
+
+  // parserUrl: function (url) {
+  //   var parser = url
+  //   return parser
+  // },
+
+  getSignQueryData: function (request, token) {
+    var _data = ''
+    var data = ''
+    const url = URL(request.url, true)
+    _data = request.method.toLocaleUpperCase() +
+    url.pathname +
+      this.buildQuery(this.sortByKey(this.map2list(Object.assign(url.query, request.data))).map(function (value) {
+        value.value = decodeURIComponent(value.value)
+        return value
+      }))
+
+    data = token + ':' + request.header['X-Nonce'] + ':' + request.header['X-Time'] + ':' + _data
+    return data
+  },
+
+  getSignQueryAndBodyData: function (request, token) {
+    var data = {}
+    data = request.params ? request.params : request.data
+    var post = ''
+    if (typeof data !== 'undefined' && request.methods == 'post') {  // post地址里不能出现query内容
+      post = this.buildQuery(this.sortByKey(this.map2list(data)))
+    }
+
+    return this.getSignQueryData(request, token) + post
+  },
+
+// 获取 unixtime时间戳
+  getUnixtime: function () {
+    return Math.floor((new Date()).getTime() / 1000)
+  },
+
+// 获取随机字符串（16位）
+  getRandomStr: function (len = 16) {
+    var ret = ''
+    var str = '1234567890qwertyuioplkjhgfdsazxcvbnmQAZWSXEDCRFVTGBYHNUJMIKOL'
+    var strlen = str.length
+    for (var i = 0; i < len; i++) {
+      ret += str.charAt(Math.floor(Math.random() * strlen))
+    }
+    return ret
+  },
+// 获取X-Sign数据
+  getSignData: function (config, token) {
+    var methodType = config.method.toLocaleUpperCase()
+    var data = ''
+    switch (methodType) {
+      case 'DELETE':
+        data = getSignQueryData(config, token)
+        break
+      case 'GET':
+      case 'POST':
+      case 'PUT':
+      case 'PATCH':
+        data = this.getSignQueryAndBodyData(config, token)
+        break
+      default:
+    }
+    data = data.replace(/&+/g, '&')
+    // console.log('getSignData === > ' + data)
+    return sha1(data)
+  }
+}
+</script>

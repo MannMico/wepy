@@ -1,0 +1,309 @@
+<style lang="scss">
+@function cSize($phonePx){
+    @return $phonePx/1.5*1rpx
+  }
+.drawdetail-title{
+  width:cSize(985);
+  display:block;
+  margin-top:cSize(81);
+  font-size:cSize(60);
+  color:#000;
+  font-weight:bold;
+  margin-left:cSize(72-6);
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+.drawdetail-deigner{
+  display:block;
+  margin:cSize(48-6) 0 cSize(60-6) cSize(72-6);
+  dt{
+    float:left;
+    image{
+      width:cSize(204);
+      height:cSize(204);
+      border-radius:50%;
+      border:cSize(1) solid #e6e6e6;
+    }
+  }
+  dd{
+    float:left;
+    margin-left:cSize(45);
+    .user-name{
+      width:cSize(660);
+      margin-top:cSize(9);
+      display:block;
+      line-height:cSize(108);
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+      font-size:cSize(51);
+      color:#333;
+    }
+    .drawlike-num{
+      margin-left:cSize(24);
+    }
+  }
+}
+.detail-banner{
+  width:cSize(1088);
+  height:cSize(1088);
+  margin:0 auto;
+  border:cSize(1) solid #c3cace;
+  image{
+    display:block;
+    width:cSize(1088);
+    height:cSize(1088);
+  }
+}
+button[plain]{
+  border:0;
+  padding:0; 
+  margin:0;
+}
+.container{
+  background:#fff;
+}
+.savePic{
+  position:absolute;
+  top:-100%;
+  width: 100%;
+  height: 90%;
+  z-index: -10;
+  opacity: 0;
+}
+</style>
+<template>
+<p class="drawdetail-title">主题：{{paintDetail.themeName}}</p>
+<dl class="drawdetail-deigner clearfix">
+  <dt>
+    <image class="head-img" src="{{paintDetail.headImage}}" />
+  </dt>
+  <dd>
+    <p class="user-name">{{paintDetail.userName}}</p>
+    <!-- <open-data class="user-name" type="userNickName"></open-data> -->
+    <span bindtap="isLike" data-id="{{paintDetail.id}}" data-like="{{paintDetail.iLike}}" data-index="0" class="icon-like icon-icon_biglike_nor2 {{paintDetail.iLike==1?'icon-icon_biglike_pre2':''}}"></span><span class="drawlike-num">{{paintDetail.like_num}}</span>
+  </dd>
+</dl>
+<view class="container">
+  <view class="detail-banner">
+    <image src="{{paintDetail.paint}}"/>
+  </view>
+</view>
+<ul class="detail-share clearfix" wx:if="{{paintDetail.isMine==1}}">
+  <li>
+    <button hover-class="share-image" plain="true" data-name="shareBtn" open-type="share"><span><image src="http://mini-program-1252168851.file.myqcloud.com/images/icon_pengyouquan_nor.png"/></span><span>分享给好友</span></button>
+  </li>
+  <li bindtap="saveImg">
+    <span class="save-image"><image src="http://mini-program-1252168851.file.myqcloud.com/images/icon_pic_nor.png"/></span><span>保存到相册</span>
+  </li>
+</ul>
+  <!--画布区域-->
+<canvas canvas-id="savePic" class="savePic" disable-scroll="false">
+
+</canvas>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import Util from '../util'
+  export default class Drawdetail extends wepy.page {
+    config = {
+      navigationBarTitleText: '作品详情页'
+    }
+    data = {
+      paintId: 0,
+      paintDetail: {},
+      width: 0,
+      height: 0,
+      lists: []
+    }
+    methods = {
+      isLike (e) {
+        var self = this
+        Util.isLike(e, self)
+      },
+      onShareAppMessage: function(options) {
+        var self = this
+        // 设置菜单中的转发按钮触发转发事件时的转发内容
+        console.log(self.paintId)
+        var shareObj = {
+          title: self.paintDetail.userName + '给您分享[疯狂画-' + self.paintDetail.themeName + ']', // 默认是小程序的名称(可以写slogan等)
+          path: '/share/share?paintId=' + self.paintId, // 默认是当前页面，必须是以‘/’开头的完整路径
+          imageUrl: self.paintDetail.paint, // 自定义图片路径，可以是本地文件路径、代码包文件路径或者网络图片路径，支持PNG及JPG，不传入 imageUrl 则使用默认截图。显示图片长宽比是 5:4
+          success: function(res) {
+            // 转发成功之后的回调
+            console.log(res)
+            if (res.errMsg == 'shareAppMessage:ok') {
+              console.log(shareObj.path)
+              console.log(shareObj.imageUrl)
+            }
+          },
+          fail: function(res) {
+          // 转发失败之后的回调
+            if (res.errMsg == 'shareAppMessage:fail cancel') {
+          // 用户取消转发
+              wx.showToast({
+                title: '取消转发',
+                icon: 'none',
+                duration: 2000
+              })
+            } else if (res.errMsg == 'shareAppMessage:fail') {
+          // 转发失败，其中 detail message 为详细失败信息
+              wx.showToast({
+                title: '转发失败',
+                icon: 'none',
+                duration: 2000
+              })
+            }
+          }
+        }
+         // 来自页面内的按钮的转发
+        if (options.from == 'button') {
+          var eData = options.target.dataset
+          console.log(eData.name)// shareBtn
+         // 此处可以修改 shareObj 中的内容
+          shareObj.path = '/share/share?paintId=' + self.paintId
+        }
+        // 返回shareObj
+        return shareObj
+      },
+      saveFunction (e) {
+        let self = e
+        self.context = wx.createContext()
+        self.context.beginPath()
+        self.context.setFillStyle('white')
+        self.context.fillRect(0, 0, self.width, self.height)
+        console.log(self.paintDetail.paint)
+        self.context.drawImage(self.paintDetail.paint, 0, 0, self.width, self.width)
+        self.context.setStrokeStyle('#e6e6e6')
+        self.context.setLineWidth(1)
+        self.context.moveTo(0, self.width)
+        self.context.lineTo(self.width, self.width)
+        self.context.stroke()
+        self.context.fillStyle = '#000000'
+        self.context.setFontSize(17)
+        self.context.fillText(self.paintDetail.themeName, 20, self.width + 40)
+        self.context.beginPath()
+        self.context.drawImage(self.paintDetail.headImage, 20, self.width + 60, 36, 36)
+        self.context.fillStyle = '#333333'
+        self.context.setFontSize(13)
+        self.context.fillText(self.paintDetail.userName, 63, self.width + 78)
+        self.context.drawImage('/images/ewm.jpg', self.width - 100, self.width + 10, 80, 80)
+        self.context.fillStyle = '#b3b3b3'
+        self.context.setFontSize(13)
+        self.context.fillText('长按识别二维码', self.width - 105, self.width + 110)
+        // self.context.beginPath()
+        var actionself = self.context.getActions()
+        console.log(actionself)
+        wx.drawCanvas({
+          canvasId: 'savePic',
+          reserve: true,
+          actions: actionself // 获取绘图动作数组
+        })
+        // debugger
+        wx.showLoading({
+          title: '图片下载中'
+        })
+        setTimeout(function () {
+          wx.canvasToTempFilePath({
+            canvasId: 'savePic',
+            success: function(res) {
+              wx.saveImageToPhotosAlbum({
+                filePath: res.tempFilePath,
+                success (res) {
+                  wx.hideLoading()
+                  // wx.navigateTo({url: '/index/index'})
+                },
+                fail (res) {
+                  wx.hideLoading()
+                },
+                complete (res) {
+                  wx.hideLoading()
+                }
+              })
+            },
+            fail: function(res) {
+              wx.hideLoading()
+            }
+          })
+        }, 3000)
+      },
+      saveImg () {
+        let _this = this
+        wx.getSetting({
+          success(res) {
+            if (!res.authSetting['scope.writePhotosAlbum']) {
+              wx.authorize({
+                scope: 'scope.writePhotosAlbum',
+                success() {
+                  _this.methods.saveFunction(_this)
+                },
+                fail() {
+                  wx.showToast({
+                    title: '您拒绝了保存图片的授权',
+                    icon: 'none',
+                    duration: 2000
+                  })
+                }
+              })
+            } else {
+              _this.methods.saveFunction(_this)
+            }
+          }
+        })
+      }
+    }
+    onLoad (option) {
+      this.loading = 0
+      let self = this
+      self.$parent.globalData.toHref = Util.getCurrentPageUrlWithArgs()
+      self.paintId = option.paintId
+      console.log(self.paintId)
+      wx.getSystemInfo({
+        success: function(res) {
+          self.width = res.windowWidth
+          self.height = res.windowHeight
+          console.log(res)
+        }
+      })
+      Util.requestAjax({
+        url: '/v1/paint/' + self.paintId,
+        methods: 'get',
+        data: {
+          paintId: self.paintId
+        },
+        success (data) {
+          if (data.data.code == 300000) {
+            console.log(data)
+            self.paintDetail = data.data.data
+            self.lists.push(self.paintDetail)
+            wx.downloadFile({
+              url: self.paintDetail.paint,
+              success (res) {
+                self.paintDetail.paint = res.tempFilePath
+                wx.downloadFile({
+                  url: self.paintDetail.headImage,
+                  success (res) {
+                    self.paintDetail.headImage = res.tempFilePath
+                  }
+                })
+              }
+            })
+            self.$apply()
+            console.log('图片' + self.paintDetail)
+          } else {
+            wx.showToast({
+              title: data.data.msg,
+              icon: 'none',
+              duration: 2000
+            })
+          }
+        }
+      })
+    }
+    onReady () {
+      this.loading = 1
+    }
+  }
+</script>

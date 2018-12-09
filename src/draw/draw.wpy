@@ -1,0 +1,567 @@
+<style lang="scss">
+@function cSize($phonePx){
+  @return $phonePx/1.5*1rpx
+}
+.canvas_area{
+  width: cSize(1088);
+  height: cSize(1088);
+  border: cSize(1) solid #c3cace;
+  margin-bottom:cSize(23);
+}
+.myCanvas{
+  width: 100%;
+  height: 100%;
+}
+
+.canvas_tools{
+  width:100%;
+  border-top:cSize(1) solid #333;
+  padding-left:cSize(65);
+}
+
+.box{
+  float:left;
+  margin:cSize(54) cSize(30) 0;
+  &1{
+    position:relative;
+    top:cSize(-6);
+    font-size:cSize(84);
+    &.icon-icon_pan_nor{
+      font-size:cSize(84+6+2);
+    }
+  }
+  &2{
+    font-size:cSize(48);
+    padding-top:cSize(12);
+  }
+  &3{
+    font-size:cSize(66);
+    padding-top:cSize(3);    
+  }
+  &4{
+    font-size:cSize(72);
+  }
+}
+.canvas-head{
+  clear:both;
+  height:cSize(480);
+  width: 100%;
+  margin-bottom:cSize(18);
+  border-bottom:cSize(12) solid #e6e6e6;
+}
+.canvas-border{
+  float:left;
+  margin:cSize(60) cSize(30);
+  width:cSize(1);
+  height:cSize(60);
+  border-right:cSize(1) solid #ccc;
+}
+.canvas-do{
+  float:left;
+  width:cSize(249);
+  height:cSize(409);
+  margin-top:cSize(71);
+  image{
+    width:cSize(249);
+    height:cSize(409);
+  }
+}
+.canvas-lamp{
+  float:left;
+  width:cSize(210);
+  height:cSize(192);
+  margin:cSize(288) cSize(108) 0 cSize(120);
+  image{
+    width:cSize(210);
+    height:cSize(192);
+  }
+}
+.canvas-all-save{
+  float:left;
+  width:cSize(270);
+  margin-left:cSize(105);
+  margin-top:cSize(42);
+  .canvas-save{
+    width:cSize(270);
+    height:cSize(108);
+    margin-top:cSize(60);
+    border:cSize(1) solid #b0b8bc;
+    border-radius:cSize(54);
+    text-align:center;
+    line-height:cSize(108);
+    font-size:cSize(51);
+    color:#3d4447;
+    span{
+      position:relative;
+      top:cSize(6);
+      font-size:cSize(66);
+      margin-right:cSize(18);
+    }
+    &:hover{
+      background:#3d4447;
+      color:#fff;
+      span{
+        color:#fff;
+      }
+    }
+  }
+}
+.clear-layer{
+  position:fixed;
+  top:0;
+  z-index: 999;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,.6);
+  .clear-position{
+    position:absolute;
+    top:cSize(1180);
+  }
+  .clear-text{
+    width:cSize(810);
+    margin-left:cSize(60);
+    padding:cSize(20) 0;
+    text-align:center;
+    line-height:cSize(74);
+    border:1px dashed #fff;
+    background:rgba(255,255,255,.1);
+    color:#fff;
+    font-size:cSize(48);
+  }
+  image{
+    position:relative;
+    left: cSize(810-120);
+    width:cSize(180);
+    height:cSize(180);
+    margin-top:cSize(36);
+  }
+  .clear-cricle{
+    position:relative;
+    left: cSize(810);
+    width:cSize(144);
+    height:cSize(144);
+    margin-top:cSize(36);
+    font-size:cSize(72);
+    background:#fff;
+    border-radius:50%;
+    text-align:center;
+    .icon-icon_revoke_nor{
+      padding-top:cSize((144-77)/2);
+    }
+  }
+}
+</style>
+<template>
+  <view class="container">
+    <view class="canvas-head">
+      <view class="canvas-lamp"><image src="http://mini-program-1252168851.file.myqcloud.com/images/lamp.png"/></view>
+      <view wx:if="{{sex==2}}">
+        <view class="canvas-do hide {{showImage==0?'show':''}}"><image src="http://mini-program-1252168851.file.myqcloud.com/images/woman_wating.gif" loop="ture"/></view>
+        <view class="canvas-do hide {{showImage==1?'show':''}}"><image src="http://mini-program-1252168851.file.myqcloud.com/images/woman_stop.png" loop="ture"/></view>
+        <view class="canvas-do hide {{showImage==2?'show':''}}"><image src="http://mini-program-1252168851.file.myqcloud.com/images/woman_slow.gif" loop="ture"/></view>
+        <view class="canvas-do hide {{showImage==3?'show':''}}"><image src="http://mini-program-1252168851.file.myqcloud.com/images/woman_fast.gif" loop="ture"/></view>
+        <view class="canvas-do hide {{showImage==4?'show':''}}"><image src="http://mini-program-1252168851.file.myqcloud.com/images/woman_ok.gif" loop="ture"/></view>
+      </view>
+      <view wx:else>
+        <view class="canvas-do hide {{showImage==0?'show':''}}"><image src="http://mini-program-1252168851.file.myqcloud.com/images/man_wating.gif" loop="ture"/></view>
+        <view class="canvas-do hide {{showImage==1?'show':''}}"><image src="http://mini-program-1252168851.file.myqcloud.com/images/man_stop.png" loop="ture"/></view>
+        <view class="canvas-do hide {{showImage==2?'show':''}}"><image src="http://mini-program-1252168851.file.myqcloud.com/images/man_slow.gif" loop="ture"/></view>
+        <view class="canvas-do hide {{showImage==3?'show':''}}"><image src="http://mini-program-1252168851.file.myqcloud.com/images/man_fast.gif" loop="ture"/></view>
+        <view class="canvas-do hide {{showImage==4?'show':''}}"><image src="http://mini-program-1252168851.file.myqcloud.com/images/man_ok.gif" loop="ture"/></view>
+      </view>
+      <view class="canvas-all-save">
+        <view class="canvas-save" bindtap="saveDraftCanvas"><span class="icon-icon_draft1_nor"></span>草稿</view>
+        <view class="canvas-save" bindtap="saveCanvas"><span class="icon-icon_finish_nor"></span>完成</view>
+      </view>
+    </view>
+    <!--画布区域-->
+    <view  class="canvas_area" id="canvas_area">
+        <!--注意：同一页面中的 canvas-id 不可重复，如果使用一个已经出现过的 canvas-id，该 canvas 标签对应的画布将被隐藏并不再正常工作-->
+        <canvas canvas-id="myCanvas" class="myCanvas" style="background:url({{origin}}) no-repeat; background-size:100% 100%;"
+            disable-scroll="false"
+            bindtouchstart="touchStart"
+            bindtouchmove="touchMove"
+            bindtouchend="touchEnd">
+        </canvas>
+    </view>
+    <!--画布工具区域-->
+    <view class="canvas_tools">
+        <view class="box box1 icon-icon_pan_nor {{isClear==2 ? 'icon-icon_pan_pre' : ''}}" bindtap="penSelect" data-param="4" data-clear="2"></view>
+        <view class="box box1 icon-icon_rubber_nor {{isClear==1 ? 'icon-icon_rubber_pre' : ''}}" bindtap="penSelect" data-param="4" data-clear="1"></view>
+        <view class="canvas-border"></view>
+        <view class="box box2 icon-icon_small_nor {{pen==4 ? 'icon-icon_small_pre' : ''}}" bindtap="penSelect" data-param="4"></view>
+        <view class="box box3 icon-icon_middle_nor {{pen==8 ? 'icon-icon_middle_pre' : ''}}" bindtap="penSelect" data-param="8"></view>
+        <view class="box box1 icon-icon_big_nor {{pen==16 ? 'icon-icon_big_pre' : ''}}" bindtap="penSelect" data-param="16"></view>
+        <view class="canvas-border"></view>        
+        <view class="box box4 {{cPushArray.length==0?'icon-icon_revoke_dis':'icon-icon_revoke_nor'}}" bindtap="cUndo" bindlongpress="bingLongTap"></view>
+        <view class="box box4 {{cStep==RPushArray.length-1?'icon-icon_restore_dis':'icon-icon_restore_nor'}}" bindtap="cRedo"></view>
+    </view>
+  </view>
+  <view class="clear-layer hide {{iscan==0?'show':''}}" bind:tap="isCanvas" data-canvas="1">
+    <view class="clear-position">
+      <view class="clear-text">
+        <view>长按撤销键，可清除画布</view>
+        <view>该操作不可恢复，请慎重使用</view>
+      </view>
+      <image src="http://mini-program-1252168851.file.myqcloud.com/images/at.png" />
+      <view class="clear-cricle"><view class="icon-icon_revoke_nor"></view></view>
+    </view>
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import Util from '../util'
+import compareVersions from 'compare-versions'
+export default class Mydraw extends wepy.page {
+  config = {
+    navigationBarTitleText: '画图'
+  }
+  data = {
+    showImage: 0,
+    pen: 4, // 画笔粗细默认值
+    color: '#000000', // 画笔颜色默认值
+    startX: 0, // 保存X坐标轴变量
+    startY: 0, // 保存X坐标轴变量
+    isClear: 2, // 是否启用橡皮擦标记,1是是，2是否
+    imgData: [],
+    cPushArray: [],
+    RPushArray: [],
+    cStep: -1,
+    width: 0,
+    height: 0,
+    themeId: 0,
+    drawId: 0,
+    canvasPic: '',
+    origin: '',
+    clearPoints: [],
+    r: 2,
+    platform: '',
+    version: '',
+    iscan: -1,
+    saveImage: 1,
+    sex: 0,
+    isDarft: 0
+  }
+  methods={
+    isCanvas (e) {
+      let self = this
+      self.iscan = e.currentTarget.dataset.canvas
+      self.$apply()
+    },
+    touchStart (e) {
+      // 得到触摸点的坐标
+      let self = this
+      this.showImage = 1
+      this.startX = e.changedTouches[0].x
+      this.startY = e.changedTouches[0].y
+      this.context = wx.createContext()
+      this.platform = this.platform.toLocaleLowerCase()
+      if (this.isClear == 1) { // 判断是否启用的橡皮擦功能  ture表示清除  false表示画画
+        if (compareVersions(self.version, '1.9.9') == 1 && this.platform == 'ios') {
+          this.context.beginPath()
+          this.context.globalCompositeOperation = 'destination-out'
+          this.context.setLineWidth(this.pen)
+          this.context.setLineCap('round') // 让线条圆润
+        } else {
+          this.context.clearRect(this.startX, this.startY, this.pen, this.pen)
+        }
+      } else {
+        this.context.globalCompositeOperation = 'destination-over'
+        this.context.setStrokeStyle(this.color)
+        this.context.setLineWidth(this.pen)
+        this.context.setLineCap('round') // 让线条圆润
+        this.context.beginPath()
+      }
+    },
+  // 手指触摸后移动
+    touchMove (e) {
+      let self = this
+      let startX1 = e.changedTouches[0].x
+      let startY1 = e.changedTouches[0].y
+      this.showImage = 2
+      if (this.isClear == 1) { // 判断是否启用的橡皮擦功能  ture表示清除  false表示画画
+        if (compareVersions(self.version, '1.9.9') == 1 && this.platform == 'ios') {
+          this.context.globalCompositeOperation = 'destination-out'
+          this.context.moveTo(this.startX, this.startY)
+          this.context.lineTo(startX1, startY1)
+          this.context.stroke()
+          this.startX = startX1
+          this.startY = startY1
+        } else {
+          let p = {x: startX1, y: startY1}
+          let k
+          if (p.x > this.startX) {
+            k = (p.y - this.startY) / (p.x - this.startX)
+            for (let i = this.startX; i < p.x; i += 1) {
+              this.context.clearRect(i, this.startY + (i - this.startX) * k, this.pen, this.pen)
+            }
+          } else {
+            k = (p.y - this.startY) / (p.x - this.startX)
+            for (let i = this.startX; i > p.x; i -= 1) {
+              this.context.clearRect(i, this.startY + (i - this.startX) * k, this.pen, this.pen)
+            }
+          }
+          this.startX = p.x
+          this.startY = p.y
+        }
+      } else {
+        // this.context.globalCompositeOperation = 'destination-over'
+        this.context.moveTo(this.startX, this.startY)
+        this.context.lineTo(startX1, startY1)
+        this.context.stroke()
+        this.startX = startX1
+        this.startY = startY1
+      }
+      // 只是一个记录方法调用的容器，用于生成记录绘制行为的actions数组。context跟<canvas/>不存在对应关系，一个context生成画布的绘制动作数组可以应用于多个<canvas/>
+      wx.drawCanvas({
+        canvasId: 'myCanvas',
+        reserve: true,
+        actions: this.context.getActions() // 获取绘图动作数组
+      })
+    },
+  // 手指触摸动作结束
+    touchEnd () {
+      var self = this
+      self.showImage = 0
+      wx.canvasToTempFilePath({
+        canvasId: 'myCanvas',
+        success: function(res) {
+          if (self.cPushArray.length > 0) {
+            self.cStep = self.cPushArray.length
+          } else {
+            self.cStep++
+          }
+          self.cPushArray.push(res.tempFilePath)
+          self.RPushArray = self.cPushArray
+          self.$apply()
+        }
+      })
+    },
+    saveCanvas () {
+      var self = this
+      var index = self.cPushArray.length - 1
+      var canvasDraft
+      self.saveImage = 1
+      // self.origin = 'https://lkker-10041312.file.myqcloud.com/Images/201801/nlre1516102485993.jpg'
+      if (index >= 0 || self.isDarft) {
+        wx.showLoading({
+          title: '图片保存中'
+        })
+        if (self.origin) {
+          wx.downloadFile({
+            url: self.origin,
+            success (res) {
+              self.origin = res.tempFilePath
+              self.context = wx.createContext()
+              if (index >= 0) {
+                canvasDraft = self.cPushArray[index]
+              } else {
+                canvasDraft = self.canvasPic
+              }
+              self.context.drawImage(self.origin, 0, 0, self.width, self.height)
+              // wx.drawCanvas({
+              //   canvasId: 'myCanvas',
+              //   reserve: false,
+              //   actions: imgs // 获取绘图动作数组
+              // })
+              self.context.drawImage(canvasDraft, 0, 0, self.width, self.height)
+              var imgs = self.context.getActions()
+              console.log(imgs)
+              // imgs = self.context.getActions()
+              wx.drawCanvas({
+                canvasId: 'myCanvas',
+                reserve: false,
+                actions: imgs // 获取绘图动作数组
+              })
+            },
+            fail (err) {
+              wx.showToast({
+                title: err,
+                icon: 'none',
+                duration: 2000
+              })
+            }
+          })
+        }
+        setTimeout(function () {
+          wx.hideLoading()
+          wx.canvasToTempFilePath({
+            canvasId: 'myCanvas',
+            success: function(msg) {
+              console.log('wenjian' + msg.tempFilePath)
+              // 获取文件路径
+              var filePath = msg.tempFilePath
+              // 获取文件名
+              var strFileName = Math.random().toString(36).substr(2)  // 正则表达式获取文件名，不带后缀
+              var FileExt = filePath.replace(/.+\./, '').toLowerCase()   // 正则表达式获取后缀
+              var fileName = strFileName + '.' + FileExt
+              // filePath.match(/(wxfile:\/\/)(.+)/)
+              // 文件上传cos，参考上面的核心代码
+              Util.uploadFn(self, filePath, fileName)
+              // debugger
+            }
+          })
+        }, 3000)
+      } else {
+        wx.showToast({
+          title: '请先作画',
+          icon: 'none',
+          duration: 2000
+        })
+      }
+    },
+    saveDraftCanvas () {
+      let self = this
+      self.saveImage = 2
+      if (self.cPushArray.length > 0 || self.isDarft) {
+        wx.showLoading({
+          title: '草稿生成中'
+        })
+        setTimeout(function () {
+          wx.hideLoading()
+          wx.canvasToTempFilePath({
+            canvasId: 'myCanvas',
+            success: function(res) {
+              console.log(res.tempFilePath)
+              var filePath = res.tempFilePath
+              // 获取文件名
+              var strFileName = Math.random().toString(36).substr(2)  // 正则表达式获取文件名，不带后缀
+              var FileExt = filePath.replace(/.+\./, '').toLowerCase()   // 正则表达式获取后缀
+              var fileName = strFileName + '.' + FileExt
+              // filePath.match(/(wxfile:\/\/)(.+)/)
+              // 文件上传cos，参考上面的核心代码
+              Util.uploadFn(self, filePath, fileName)
+              // self.context = wx.createCanvasContext('myCanvas')
+              // self.context.drawImage('/images/charts.png', 0, 0, self.width, self.height)
+              // self.context.drawImage(res.tempFilePath, 0, 0, self.width, self.height)
+              // self.context.draw()
+              // wx.canvasToTempFilePath({
+              //   canvasId: 'myCanvas',
+              //   success: function(res) {
+              //   }
+              // })
+            }
+          })
+        }, 3000)
+      } else {
+        wx.showToast({
+          title: '请先作画',
+          icon: 'none',
+          duration: 2000
+        })
+      }
+    },
+    bingLongTap () {
+      this.cStep = -1
+      this.cPushArray = []
+      this.RPushArray = []
+      this.context = wx.createCanvasContext('myCanvas')
+      this.context.clearRect(0, 0, this.width, this.height)
+      this.context.draw()
+    },
+    cUndo () {
+      this.context = wx.createCanvasContext('myCanvas')
+      if (this.cStep > 0) {
+        this.context.globalCompositeOperation = 'destination-over'
+        this.cPushArray = this.cPushArray.slice(0, this.cStep)
+        this.cStep--
+        var canvasPic = this.cPushArray[this.cStep]
+        this.context.drawImage(canvasPic, 0, 0, this.width, this.height)
+        this.context.draw()
+      } else {
+        this.cStep = -1
+        this.cPushArray = []
+        this.context.clearRect(0, 0, this.width, this.height)
+        this.context.draw()
+      }
+    },
+    cRedo () {
+      this.context = wx.createCanvasContext('myCanvas')
+      if (this.cStep < this.RPushArray.length - 1) {
+        this.cPushArray = this.RPushArray
+        this.cStep++
+      }
+      var canvasPic = this.cPushArray[this.cStep]
+      this.context.drawImage(canvasPic, 0, 0, this.width, this.height)
+      this.context.draw()
+    },
+    penSelect (e) { // 更改笔触大小
+      if (e.currentTarget.dataset.param) {
+        this.pen = parseInt(e.currentTarget.dataset.param)
+      }
+      if (e.currentTarget.dataset.clear) {
+        this.isClear = parseInt(e.currentTarget.dataset.clear)
+      }
+    }
+    // colorSelect (e) { // 更改画笔颜色的方法
+    //   console.log(e.currentTarget)
+    //   this.color = e.currentTarget.dataset.param
+    //   this.isClear = false
+    // }
+  }
+  onLoad (option) {
+    var self = this
+    self.themeId = option.themeId
+    self.drawId = option.drawId || 0
+    self.origin = option.origin
+    self.sex = wx.getStorageSync('sex')
+    if (wx.getStorageSync('iscanvas')) {
+      self.iscan = wx.getStorageSync('iscanvas')
+      self.$apply()
+    } else {
+      self.iscan = 0
+      self.$apply()
+      wx.setStorageSync('iscanvas', 1)
+    }
+    console.log('开始' + self.origin)
+    wx.getSystemInfo({
+      success: function(res) {
+        self.width = res.windowWidth / 1.035
+        self.height = self.width
+        self.platform = res.platform
+        self.version = res.SDKVersion
+        console.log(res)
+      }
+    })
+    self.$apply()
+  }
+  onReady () {
+    var self = this
+    if (self.drawId > 0) {
+      Util.requestAjax({
+        url: '/v1/draft/' + self.drawId,
+        method: 'get',
+        data: {
+          draftId: self.drawId
+        },
+        success (data) {
+          // debugger
+          if (data.data.code == 300000) {
+            self.canvasPic = data.data.data.draft
+            self.origin = data.data.data.origin
+            self.isDarft = 1
+            self.$apply()
+            console.log(self.canvasPic)
+            wx.downloadFile({
+              url: data.data.data.draft,
+              complete (res) {
+                self.context = wx.createCanvasContext('myCanvas')
+                self.context.beginPath()
+                self.context.drawImage(res.tempFilePath, 0, 0, self.width, self.height)
+                self.context.draw()
+              }
+            })
+          } else {
+            wx.showToast({
+              title: data.data.msg,
+              icon: 'none',
+              duration: 2000
+            })
+          }
+        }
+      })
+    }
+  }
+}
+</script>

@@ -1,0 +1,179 @@
+<style lang="scss">
+@function cSize($phonePx){
+  @return $phonePx/1.5*1rpx
+}
+.share-top{
+  width: cSize(210);
+  height:cSize(180);
+  margin:cSize(78) auto cSize(72);
+  image{
+    width: cSize(210);
+    height:cSize(180);
+  }
+}
+.share-content{
+  width:cSize(960);
+  padding:cSize(60) 0 cSize(54);
+  box-shadow: 0 0 cSize(20) #f1f1f1;
+  margin: 0 auto;
+  .share-img{
+    width:cSize(840);
+    height:cSize(840);
+    margin:0 auto cSize(57);
+    border:cSize(1) solid #ccc;
+    background:#f4f4f4;
+    .get-img{
+      width:cSize(840);
+      height:cSize(840);
+    }
+    .shake-img{
+      display:block;
+      width:cSize(336);
+      height:cSize(336);
+      margin: cSize(198) auto 0;
+    }
+    .shake-txt{
+      margin-top:cSize(60);
+      font-size:cSize(48);
+      color:#cad0d2;
+      text-align:center;
+    }
+  }
+}
+.share-title{
+  font-size:cSize(57);
+  text-align:center;
+  font-weight:bold;
+}
+.share-author{
+  margin-left:cSize(237);
+  span{
+    float:left;
+    display:inline-block;
+    margin-top:cSize(54-6);
+    line-height:cSize(108);
+  }
+  image{
+    float:left;
+    margin-top:cSize(42-6);
+    margin-right:cSize(30);
+    border-radius:50%;
+    border:cSize(1) solid #e6e6e6;
+    width:cSize(108);
+    height:cSize(108);
+  }
+}
+.more-opus{
+  float:right;
+  font-size:cSize(42);
+  margin-top:cSize(18);
+  margin-right:cSize(90);
+  color:#999;
+  padding:cSize(18) cSize(0) cSize(18) cSize(30);
+  &:hover{
+    background:none!important;
+  }
+}
+.share-like{
+  position:relative;
+  top:cSize(-30);
+  clear:both;
+  font-size:cSize(72);
+  color:#3d4447;
+  text-align:center;
+  .icon-share-like{
+    margin-right:cSize(60);
+    font-size:cSize(84);
+  }
+}
+</style>
+<template>
+    <view class="share-top">
+      <image src="http://mini-program-1252168851.file.myqcloud.com/images/photo.png"/>
+    </view>
+    <view class="share-content clearfix">
+      <view class="shake-img">
+      </view>
+      <view class="share-img">
+        <view wx:if="{{showImg==0}}">
+        <image class="shake-img" src="{{paint}}" />
+        <view class="shake-txt">图片正在加载，请稍后···</view>
+        </view>
+        <image wx:else class="get-img" src="{{paintDetail.paint}}" />
+      </view>
+      <navigator url="/drawlist/drawlist?themeId={{paintDetail.theme_id}}"><view class="share-title">主题：{{paintDetail.themeName}}</view></navigator>
+      <view class="share-author"><image src="{{paintDetail.headImage}}" /><span>{{paintDetail.userName}}</span></view>
+    </view>
+    <navigator url="/drawlist/drawlist?themeId={{paintDetail.theme_id}}"><view class="more-opus">更多作品 ></view></navigator>
+    <view class="share-like" bindtap="isLike" data-id="{{paintDetail.theme_id}}" data-like="{{paintDetail.iLike}}" data-index="0" >
+      <span class="icon-share-like icon-icon_like_nor {{paintDetail.iLike==1?'icon-icon_biglike_pre2':''}}"></span><span>{{paintDetail.like_num}}</span>
+    </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import Util from '../util'
+  export default class Share extends wepy.page {
+    config = {
+      navigationBarTitleText: '作品分享页'
+    }
+    data = {
+      paint: 'http://mini-program-1252168851.file.myqcloud.com/images/show-loading.gif',
+      paintDetail: {},
+      lists: [],
+      showImg: 0
+    }
+    methods = {
+      isLike (e) {
+        var self = this
+        Util.isLike(e, self)
+      }
+    }
+    onLoad (option) {
+      let self = this
+      self.paintId = option.paintId
+      self.$parent.globalData.toHref = Util.getCurrentPageUrlWithArgs()
+      Util.requestAjax({
+        url: '/v1/paint/' + self.paintId,
+        methods: 'get',
+        data: {
+          paintId: self.paintId
+        },
+        success (data) {
+          if (data.data.code == 300000) {
+            console.log(data)
+            self.paintDetail = data.data.data
+            self.lists.push(self.paintDetail)
+            self.$apply()
+          } else {
+            wx.showToast({
+              title: data.data.msg,
+              icon: 'none',
+              duration: 2000
+            })
+          }
+        }
+      })
+    }
+    onShow () {
+      var self = this
+      setTimeout(() => {
+        if (self.paintDetail.paint != '') {
+          self.showImg = 1
+          self.$apply()
+        }
+      }, 1000)
+      // wx.onAccelerometerChange(function (e) {
+      //   if (e.x > 1 && e.y > 1) {
+      //     self.showImg = 1
+      //     self.$apply()
+      //     // wx.showToast({
+      //     //   title: '摇一摇成功',
+      //     //   icon: 'success',
+      //     //   duration: 2000
+      //     // })
+      //   }
+      // })
+    }
+  }
+</script>

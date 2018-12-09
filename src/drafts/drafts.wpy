@@ -1,0 +1,246 @@
+<style lang="scss">
+@function cSize($phonePx){
+    @return $phonePx/1.5*1rpx
+  }
+  .drafts-ul{
+    li{
+      width:100%;
+      display:block;
+      height:cSize(348);
+      line-height:cSize(348);
+      border-bottom:cSize(1) solid #e0e0e0;
+      position: relative;  
+      overflow: hidden;  
+      .drafts-item{
+        position:relative;
+        clear:both;
+      }
+      .drafts-img{
+        float:left;
+        width:cSize(228);
+        height:cSize(228);
+        margin:cSize(60) cSize(60) cSize(60) cSize(90);
+        border:cSize(8) solid #000;
+        image{
+          width:cSize(228);
+          height:cSize(228);
+          box-shadow:0 cSize(6) cSize(14) #c3c3c3;
+        }
+      }
+      .drafts-title{
+        width:cSize(90);
+        overflow:hidden;
+        white-space:nowrap;
+        text-overflow:ellipsis;
+        color:#000;
+        font-size:cSize(54);
+        font-weight:bold;
+      }
+      .inner{
+          position: absolute;
+          top:0;
+        &.txt{
+          background-color: #fff;
+          width: 100%;
+          z-index: 5;
+          padding:0 cSize(10);
+          transition: left 0.2s ease-in-out;
+          white-space:nowrap;
+          overflow:hidden;
+          text-overflow:ellipsis;
+        }
+        &.del{
+          background-color: #e64340;
+          width: cSize(270);
+          text-align: center;
+          z-index: 4;
+          right: 0;
+          color: #fff;
+          font-size:cSize(60);
+        }
+      }
+    }
+  }
+  .doright{
+    transition: right 0.2s ease-in-out;
+  }
+  .no-images{
+    width:cSize(480);
+    height:cSize(450);
+    margin: cSize(600) auto cSize(84);
+    display:block;
+  }
+</style>
+<template>
+  <view wx:if="{{loading==1}}">
+  <view class="hide {{list.length>0?'show':''}}">
+    <ul class="drafts-ul">
+      <repeat for="{{list}}" wx:if="{{index < 5}}">
+        <li>
+          <view class="drafts-item inner txt {{i!=index?'doright':''}}" data-index="{{index}}" bind:touchstart='touchS' bind:touchmove='touchM' bind:touchend='touchE' style="{{item.txtStyle}};">
+            <navigator url="/draw/draw?themeId={{item.theme_id}}&drawId={{item.id}}" data-index="{{index}}">
+              <p class="drafts-img" style="background:url({{item.origin}}) no-repeat; background-size: 100% 100%;"><image src="{{item.draft}}" data-index="{{index}}"/></p>
+            </navigator>
+            <navigator url="/draw/draw?themeId={{item.theme_id}}&drawId={{item.id}}" data-index="{{index}}">
+              <p class="drafts-title" data-index="{{index}}">{{item.themeName}}</p>
+            </navigator>
+          </view>
+          <p data-index="{{index}}" data-id="{{item.id}}" bind:tap = "delItem" class="inner del">删除</p>
+        </li>
+      </repeat>
+    </ul>
+  </view>
+  <view class="hide {{list.length==0?'show':''}}">
+    <image class="no-images" src="http://mini-program-1252168851.file.myqcloud.com/images/no-draft.png" />
+    <view class="opus-text">草稿箱空空如也，快去绘出你的创意!</view>
+  </view>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import Util from '../util'
+  export default class Drafts extends wepy.page {
+    config = {
+      navigationBarTitleText: '草稿箱'
+    }
+    data = {
+      delBtnWidth: 100,
+      i: -1,
+      list: [],
+      loading: 0
+    }
+    methods = {
+      touchS (e) {
+        if (e.touches.length == 1) {
+          this.data.startX = e.touches[0].clientX
+        }
+      },
+      touchM (e) {
+        if (e.touches.length == 1) {
+          let moveX = e.touches[0].clientX
+          let disX = this.data.startX - moveX
+          let delBtnWidth = this.data.delBtnWidth
+          let txtStyle = ''
+          if (disX == 0 || disX < 0) {
+            txtStyle = 'left:0px'
+          } else if (disX > 0) {
+            txtStyle = 'left:-' + disX + 'px'
+            if (disX >= delBtnWidth) {
+              txtStyle = 'left:-' + delBtnWidth + 'px'
+            }
+          }
+          let index = e.target.dataset.index
+          let list = this.data.list
+          for (let i = 0; i < list.length; i++) {
+            if (i == index) {
+              list[i].txtStyle = txtStyle
+              this.i = index
+            } else {
+              list[i].txtStyle = ''
+            }
+          }
+          this.list = list
+          this.$apply()
+        }
+      },
+      touchE (e) {
+        if (e.changedTouches.length == 1) {
+          let endX = e.changedTouches[0].clientX
+          let disX = this.data.startX - endX
+          let delBtnWidth = this.data.delBtnWidth
+          let txtStyle = disX > delBtnWidth / 2 ? 'left:-' + delBtnWidth + 'px' : 'left:0px'
+          let index = e.target.dataset.index
+          let list = this.data.list
+          list[index].txtStyle = txtStyle
+          this.list = list
+        }
+      },
+      getEleWidth (w) {
+        let real = 0
+        try {
+          let res = wx.getSystemInfoSync().windowWidth
+          let scale = (750 / 2) / (w / 2)
+          // console.log(scale)
+          real = Math.floor(res / scale)
+          return real
+        } catch (e) {
+          return false
+        }
+      },
+      initEleWidth () {
+        let delBtnWidth = this.getEleWidth(this.data.delBtnWidth)
+        this.delBtnWidth = delBtnWidth
+      },
+      delItem (e) {
+        let index = e.target.dataset.index
+        let list = this.data.list
+        let draftId = e.target.dataset.id
+        let self = this
+        wx.showModal({
+          title: '删除提示',
+          content: '删除后不可恢复,是否删除该草稿',
+          confirmColor: '#00d3b2',
+          confirmText: '是',
+          cancelText: '否',
+          success: function(res) {
+            if (res.confirm) {
+              Util.requestAjax({
+                url: '/v1/draft/remove/' + draftId,
+                method: 'post',
+                data: {
+                  draftId: draftId
+                },
+                success (data) {
+                  if (data.data.code == 300000) {
+                    list.splice(index, 1)
+                    self.list = list
+                    self.$apply()
+                  } else {
+                    wx.showToast({
+                      title: data.data.msg,
+                      icon: 'none',
+                      duration: 2000
+                    })
+                  }
+                }
+              })
+            } else if (res.cancel) {
+              self.list[index].txtStyle = ''
+              self.$apply()
+            }
+          }
+        })
+      }
+    }
+    onLoad () {
+      let self = this
+      Util.isLogin({
+        e: Util,
+        sth () {
+          Util.requestAjax({
+            url: '/v1/draft/list',
+            method: 'get',
+            data: {
+              pageSize: 10,
+              page: 1
+            },
+            success: function (data) {
+              if (data.data.code == 300000) {
+                self.list = data.data.data.data
+                self.loading = 1
+                self.$apply()
+              } else {
+                wx.showToast({
+                  title: data.data.msg,
+                  icon: 'none',
+                  duration: 2000
+                })
+              }
+            }
+          })
+        }
+      })
+    }
+  }
+</script>

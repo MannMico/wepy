@@ -1,0 +1,8 @@
+var imageHref = function (img) {
+  var imghost= "http://mini-program-1252168851.file.myqcloud.com/"
+  var imgAll = imghost + img 
+  return imgAll
+}
+module.exports = {
+  imageHref: imageHref
+}

@@ -1,0 +1,205 @@
+<style lang="scss">
+@function cSize($phonePx){
+    @return $phonePx/1.5*1rpx
+  }
+.ranking-list{
+  margin-top:cSize(90);
+
+}
+.ranking-num{
+  float:left;
+  width:cSize(114);
+  margin:cSize(26) 0;
+  text-align:center;
+  font-weight:bold;
+  font-size:cSize(66);
+  color:#000;
+  &.num{
+    &1{
+      color:#fe4f50;
+    }
+    &2{
+      color:#fe9040;
+    }
+    &3{
+      color:#2ccdb4;
+    }
+  }
+}
+.ranking-dl{
+  float:left;
+  dt{
+    position:relative;
+    float:left;
+    width:cSize(360);
+    height:cSize(360);
+    .image-paint{
+      image{
+        width:cSize(360);
+        height:cSize(360);
+        box-shadow:0 cSize(6) cSize(12) #e1e1e1;
+      }
+    }
+    .rank-img{
+      position:absolute;
+      top: cSize(-6);
+      right:cSize(-6);
+      image{
+        width:cSize(114);
+        height:cSize(114);
+      }
+    }
+  }
+  dd{
+    float:left;
+    width:cSize(600);
+    margin-left:cSize(45);
+    .ranking-title{
+      display:block;
+      width:cSize(540);
+      line-height:cSize(130);
+      font-size:cSize(54);
+      font-weight:bold;
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+    }
+    .ranking-designer{
+      image{
+        float:left;
+        width:cSize(108);
+        height:cSize(108);
+        border-radius:50%;
+        border:cSize(1) solid #e6e6e6;
+      }
+      span{
+        float:left;
+        display:block;
+        width:cSize(360);
+        line-height:cSize(108);
+        margin-left:cSize(36);
+        font-size:cSize(45);
+        color:#333;
+        overflow:hidden;
+        white-space:nowrap;
+        text-overflow:ellipsis;
+      }
+    }
+    .ranking-like{
+      float:right;
+      margin:cSize(52) cSize(60) 0 0;
+      line-height:cSize(52);
+      .icon-like{
+        float:left;
+      }
+      .like-num{
+        float:left;
+        margin-left:cSize(24);
+        font-size:cSize(42);
+        color:#999;
+      }
+    }
+  }
+}
+</style>
+<template>
+  <view>
+  <repeat for="{{lists}}" key="{{index}}">
+    <view class="ranking-list clearfix">
+      <p class="ranking-num num{{index+1}}">{{index+1}}.</p>
+      <dl class="ranking-dl">
+        <dt>
+          <navigator url="/drawdetail/drawdetail?paintId={{item.id}}">
+            <span class="image-paint"><image src="{{item.paint}}" alt=""/></span>
+          </navigator>
+          <p class="rank-img" wx:if="{{index<3}}"><image src="http://mini-program-1252168851.file.myqcloud.com/images/top{{index+1}}.png"/></p>
+        </dt>
+        <dd>
+          <navigator url="/drawdetail/drawdetail?paintId={{item.id}}">
+            <p class="ranking-title">{{item.themeName}}</p>
+          </navigator>
+          <p class="ranking-designer clearfix"><image src="{{item.headImage}}" alt="" /><span class="designer-name">{{item.userName}}</span></p>
+          <p class="ranking-like" data-id="{{item.id}}" data-like="{{item.iLike}}" data-index="{{index}}" bind:tap="isLike"><span class="icon-like {{item.iLike==1?'icon-icon_biglike_pre2':'icon-icon_biglike_nor2'}}"></span><span class="like-num">{{item.like_num}}</span></p>
+        </dd>
+      </dl>
+    </view>
+    <view class="h90"></view>
+  </repeat>
+  </view>
+  
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import Util from '../util'
+  export default class Rankinglist extends wepy.page {
+    config = {
+      navigationBarTitleText: '排行榜',
+      enablePullDownRefresh: true
+    }
+    data = {
+      lists: []
+    }
+    methods = {
+      isLike (e) {
+        var self = this
+        Util.isLike(e, self)
+      }
+    }
+    onLoad () {
+      this.$parent.globalData.loading = 0
+      let self = this
+      Util.requestAjax({
+        url: '/v1/paint/ranking',
+        method: 'get',
+        data: {
+          pageSize: 20,
+          page: 1
+        },
+        success (data) {
+          if (data.data.code == 300000) {
+            self.lists = data.data.data.data
+            console.log(self.lists)
+            self.$apply()
+          } else {
+            wx.showToast({
+              title: data.data.msg,
+              icon: 'none',
+              duration: 2000
+            })
+          }
+        }
+      })
+    }
+    onPullDownRefresh () {
+      // 显示顶部刷新图标
+      var self = this
+      self.lists = []
+      Util.requestAjax({
+        url: '/v1/paint/ranking',
+        method: 'get',
+        data: {
+          pageSize: 20,
+          page: 1
+        },
+        success (data) {
+          if (data.data.code == 300000) {
+            self.lists = data.data.data.data
+            console.log(self.lists)
+            self.$apply()
+          } else {
+            wx.showToast({
+              title: data.data.msg,
+              icon: 'none',
+              duration: 2000
+            })
+          }
+        }
+      })
+      wx.stopPullDownRefresh()
+    }
+    onReady () {
+      // this.$parent.globalData.loading = 1
+    }
+  }
+</script>
